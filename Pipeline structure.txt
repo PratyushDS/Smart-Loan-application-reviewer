@@ -1,0 +1,26 @@
+loan-approval-prediction/
+├── config/
+│   └── config.yaml
+├── data/
+│   └── loan_approval_data.csv
+├── logs/
+│   └── app.log
+├── models/
+├── reports/
+│   ├── figures/
+│   └── tables/
+├── src/
+│   ├── data_processing/
+│   ├── models/
+│   ├── visualization/
+│   │   ├── __init__.py
+│   │   ├── eda.py
+│   │   └── visualizer.py
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   └── logger.py
+│   └── app.py
+├── tests/
+├── requirements.txt
+├── README.md
+└── main.py

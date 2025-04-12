@@ -1,0 +1,26 @@
+data_path: "data/loan_approval_dataset.csv"
+model_path: "model/trained_model.pkl"
+preprocessor_path: "model/preprocessor.pkl"
+test_size: 0.2
+random_state: 42
+features:
+  numerical:
+    - cibil_score
+    - income_annum
+    - loan_amount
+    - loan_term
+    - residential_assets_value
+    - commercial_assets_value
+    - luxury_assets_value
+    - bank_asset_value
+  categorical:
+    - education
+    - self_employed
+target: loan_status
+logging:
+  log_file: "logs/app.log"
+  log_level: "DEBUG"
+
+reports:
+  figures_dir: "reports/figures"
+  tables_dir: "reports/tables"
