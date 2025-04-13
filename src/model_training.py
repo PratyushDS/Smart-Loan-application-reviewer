@@ -2,6 +2,10 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.naive_bayes import GaussianNB
+from catboost import CatBoostClassifier
+from lightgbm import LGBMClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score,confusion_matrix
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -69,20 +73,43 @@ class ModelTrainer:
         
         self.classifiers = [
             {
+                'name': 'Logistic Regression',
+                'model': LogisticRegression(random_state=self.config['random_state'], max_iter=1000),
+                'params': {
+                    'C': [0.1, 1, 10],
+                    'solver': ['liblinear', 'saga']
+                }
+            },
+            {
+                'name': 'Naive Bayes',
+                'model': GaussianNB(),
+                'params': {
+                    'var_smoothing': [1e-9, 1e-8, 1e-7]
+                }
+            },
+            {
+                'name': 'SVM',
+                'model': SVC(random_state=self.config['random_state'], probability=True),
+                'params': {
+                    'C': [0.1, 1, 10],
+                    'kernel': ['linear', 'rbf']
+                }
+            },
+            {
+                'name': 'Decision Tree',
+                'model': DecisionTreeClassifier(random_state=self.config['random_state']),
+                'params': {
+                    'max_depth': [None, 10, 20],
+                    'min_samples_split': [2, 5]
+                }
+            },
+            {
                 'name': 'Random Forest',
                 'model': RandomForestClassifier(random_state=self.config['random_state']),
                 'params': {
                     'n_estimators': [100, 200],
                     'max_depth': [None, 10, 20],
                     'min_samples_split': [2, 5]
-                }
-            },
-            {
-                'name': 'Logistic Regression',
-                'model': LogisticRegression(random_state=self.config['random_state'], max_iter=1000),
-                'params': {
-                    'C': [0.1, 1, 10],
-                    'solver': ['liblinear', 'saga']
                 }
             },
             {
@@ -97,6 +124,24 @@ class ModelTrainer:
             {
                 'name': 'XGBoost',
                 'model': CustomXGBClassifier(random_state=self.config['random_state']),
+                'params': {
+                    'n_estimators': [100, 200],
+                    'max_depth': [3, 5],
+                    'learning_rate': [0.01, 0.1]
+                }
+            },
+            {
+                'name': 'CatBoost',
+                'model': CatBoostClassifier(random_state=self.config['random_state'], silent=True),
+                'params': {
+                    'iterations': [100, 200],
+                    'depth': [3, 5],
+                    'learning_rate': [0.01, 0.1]
+                }
+            },
+            {
+                'name': 'LightGBM',
+                'model': LGBMClassifier(random_state=self.config['random_state']),
                 'params': {
                     'n_estimators': [100, 200],
                     'max_depth': [3, 5],
@@ -133,28 +178,51 @@ class ModelTrainer:
                 grid_search.fit(X_train, y_train)
                 best_model = grid_search.best_estimator_
                 
-                # Evaluate on test set
-                y_pred = best_model.predict(X_test)
-                model_metrics = self._calculate_metrics(y_test, y_pred)
+                # Calculate metrics for both sets
+                y_train_pred = best_model.predict(X_train)
+                y_test_pred = best_model.predict(X_test)
                 
-                # Store results
+                train_metrics = self._calculate_metrics(y_train, y_train_pred)
+                test_metrics = self._calculate_metrics(y_test, y_test_pred)
+                
+                # Store comprehensive  results
                 self.results.append({
-                    'model': classifier['name'],
-                    'best_params': grid_search.best_params_,
-                    'f1_score': model_metrics['f1'],
-                    'precision': model_metrics['precision'],
-                    'recall': model_metrics['recall'],
-                    'accuracy': model_metrics['accuracy'],
-                    'training_time': str(datetime.now() - start_time)
-                })
+                'model': classifier['name'],
+                'best_params': grid_search.best_params_,
+                # Training metrics
+                'train_f1': train_metrics['f1'],
+                'train_precision': train_metrics['precision'],
+                'train_recall': train_metrics['recall'],
+                'train_accuracy': train_metrics['accuracy'],
+                'train_tp': train_metrics['tp'],
+                'train_fp': train_metrics['fp'],
+                'train_tn': train_metrics['tn'],
+                'train_fn': train_metrics['fn'],
+                # Test metrics
+                'test_f1': test_metrics['f1'],
+                'test_precision': test_metrics['precision'],
+                'test_recall': test_metrics['recall'],
+                'test_accuracy': test_metrics['accuracy'],
+                'test_tp': test_metrics['tp'],
+                'test_fp': test_metrics['fp'],
+                'test_tn': test_metrics['tn'],
+                'test_fn': test_metrics['fn'],
+                'training_time': str(datetime.now() - start_time)
+            })
                 
                 logger.info(f"{classifier['name']} training completed in {self.results[-1]['training_time']}")
-                logger.info(f"{classifier['name']} Metrics - F1: {model_metrics['f1']:.4f}, "
-                          f"Precision: {model_metrics['precision']:.4f}, "
-                          f"Recall: {model_metrics['recall']:.4f}")
+                logger.info(f"{classifier['name']} training Metrics - F1: {train_metrics['f1']:.4f}, "
+                          f"Precision: {train_metrics['precision']:.4f}, "
+                          f"Recall: {train_metrics['recall']:.4f}, "
+                          f"Accuracy: {train_metrics['accuracy']:.4f}")
                 
-                if model_metrics['f1'] > self.best_score:
-                    self.best_score = model_metrics['f1']
+                logger.info(f"{classifier['name']} test Metrics - F1: {test_metrics['f1']:.4f}, "
+                          f"Precision: {test_metrics['precision']:.4f}, "
+                          f"Recall: {test_metrics['recall']:.4f}, "
+                          f"Accuracy: {test_metrics['accuracy']:.4f}")
+                
+                if test_metrics['f1'] > self.best_score:
+                    self.best_score = test_metrics['f1']
                     self.best_model = best_model
                     self.best_model_name = classifier['name']
             
@@ -171,18 +239,24 @@ class ModelTrainer:
             raise
 
     def _calculate_metrics(self, y_true, y_pred):
+        cm = confusion_matrix(y_true, y_pred)
+        tn, fp, fn, tp = cm.ravel()
         return {
             'f1': f1_score(y_true, y_pred),
             'precision': precision_score(y_true, y_pred),
             'recall': recall_score(y_true, y_pred),
-            'accuracy': accuracy_score(y_true, y_pred)
+            'accuracy': accuracy_score(y_true, y_pred),
+            'tp': tp,
+            'fp': fp,
+            'tn': tn,
+            'fn': fn
         }
 
     def _save_results(self):
         try:
             # Save model comparison results
             df = pd.DataFrame(self.results)
-            df.sort_values('f1_score', ascending=False, inplace=True)
+            df.sort_values('test_f1', ascending=False, inplace=True)
             
             path = os.path.join(self.reports_config['tables_dir'], 'model_performance.xlsx')
             df.to_excel(path, index=False)
@@ -195,6 +269,7 @@ class ModelTrainer:
     def _save_best_model(self):
         try:
             joblib.dump(self.best_model, self.config['model_path'])
+            
             logger.info(f"Best model ({self.best_model_name}) saved to {self.config['model_path']}")
         except Exception as e:
             logger.error(f"Error saving best model: {str(e)}")
