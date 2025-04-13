@@ -81,27 +81,31 @@ class DataPreprocessor:
     def prepare_data(self):
         try:
             X, y = self.load_data()
-            preprocessor = self.get_preprocessor()
-            X_processed = preprocessor.fit_transform(X)
             
-            # Get feature names after preprocessing
-            numerical_features = self.config['features']['numerical']
-            categorical_features = self.config['features']['categorical']
-            
-            # Get transformed feature names
-            numeric_names = numerical_features
-            cat_names = preprocessor.named_transformers_['cat'].named_steps['encoder'].get_feature_names_out(categorical_features)
-            self.feature_names = np.concatenate([numeric_names, cat_names])
-            
-            joblib.dump(preprocessor, self.config['preprocessor_path'])
-            logger.info("Preprocessor saved successfully")
-            
-            X_train, X_test, y_train, y_test = train_test_split(
-                X_processed, y, 
+            # Split first before any preprocessing
+            X_train_raw, X_test_raw, y_train, y_test = train_test_split(
+                X, y, 
                 test_size=self.config['test_size'],
                 random_state=self.config['random_state'],
                 stratify=y
             )
+            
+            # Fit preprocessor ONLY on training data
+            preprocessor = self.get_preprocessor()
+            preprocessor.fit(X_train_raw)
+            
+            # Transform both sets using training parameters
+            X_train = preprocessor.transform(X_train_raw)
+            X_test = preprocessor.transform(X_test_raw)
+            
+            # Get feature names (from training data)
+            numerical = self.config['features']['numerical']
+            categorical = self.config['features']['categorical']
+            cat_names = preprocessor.named_transformers_['cat'].named_steps['encoder'].get_feature_names_out(categorical)
+            self.feature_names = np.concatenate([numerical, cat_names])
+            
+            joblib.dump(preprocessor, self.config['preprocessor_path'])
+            
             return X_train, X_test, y_train, y_test, self.feature_names
             
         except Exception as e:

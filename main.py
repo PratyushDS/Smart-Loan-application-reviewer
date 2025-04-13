@@ -15,20 +15,20 @@ def training_pipeline():
     try:
         # Perform EDA
         logger.info("Starting EDA")
-        # eda = EDA()
-        # eda.perform_eda()
+        eda = EDA()
+        eda.perform_eda()
         
         # Data preparation
-        logger.info("Preparing data")
-        processor = DataPreprocessor('config/config.yaml')
-        X_train, X_test, y_train, y_test, feature_names = processor.prepare_data()
+        # logger.info("Preparing data")
+        # processor = DataPreprocessor('config/config.yaml')
+        # X_train, X_test, y_train, y_test, feature_names = processor.prepare_data()
         
-        # Model training and evaluation
-        logger.info("Starting model training")
-        trainer = ModelTrainer('config/config.yaml')
-        trainer.train_and_evaluate(X_train, y_train, X_test, y_test, feature_names)
-        print("Model training completed")
-        logger.info("Model training completed")
+        # # Model training and evaluation
+        # logger.info("Starting model training")
+        # trainer = ModelTrainer('config/config.yaml')
+        # trainer.train_and_evaluate(X_train, y_train, X_test, y_test, feature_names)
+        # print("Model training completed")
+        # logger.info("Model training completed")
     except Exception as e:
         logger.error(f"Error in main pipeline: {str(e)}")
         raise

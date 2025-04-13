@@ -16,6 +16,7 @@ features:
   categorical:
     - education
     - self_employed
+    - no_of_dependents
 target: loan_status
 logging:
   log_file: "logs/app.log"
